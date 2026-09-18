@@ -1,6 +1,7 @@
 package com.normola.barodroid.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -66,7 +67,7 @@ class BaroDialWidget : GlanceAppWidget() {
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .clickable(actionStartActivity<MainActivity>()),
+                .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
             contentAlignment = Alignment.Center,
         ) {
             Image(
