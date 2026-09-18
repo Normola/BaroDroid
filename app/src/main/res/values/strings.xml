@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BaroDroid</string>
+
+    <string name="widget_dial_label">Barometer dial</string>
+    <string name="widget_dial_description">The full barometer face, with the set-hand showing where the needle stood three hours ago.</string>
+    <string name="widget_strip_label">Pressure strip</string>
+    <string name="widget_strip_description">Current pressure, tendency and the last 24 hours as a trace.</string>
+
+    <string name="logging_channel_name">Background logging</string>
+    <string name="logging_channel_description">Shown while BaroDroid keeps recording pressure with the app closed.</string>
+    <string name="logging_notification_starting">Recording pressure…</string>
+    <string name="logging_notification_reading">%1$s</string>
+    <string name="logging_notification_body">BaroDroid is keeping the barograph running</string>
+    <string name="action_stop">Stop</string>
+</resources>
