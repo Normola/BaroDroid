@@ -73,10 +73,14 @@ the build onto a phone is: open the release, point the phone at the screen.
 
 A tag of the form `v1.2.3-beta.1` is published as a pre-release.
 
-To rehearse without publishing anything, run the workflow manually
-(**Actions → Android CI → Run workflow**) with *dry run* left on, or put
-`[release-dry-run]` in a commit message. Either way the same APK, QR code and notes
-are produced and attached to the run as artifacts, and no release is created.
+You can also cut a release from the Actions tab without touching git: **Actions →
+Android CI → Run workflow**, pick the branch, and type the tag (`v1.0.0`) into
+*release_tag*. The job creates the tag on that commit and publishes the release.
+
+To rehearse without publishing anything, run the workflow manually and leave
+*release_tag* empty, or put `[release-dry-run]` in a commit message. Either way the
+same APK, QR code and notes are produced and attached to the run as artifacts, and
+no release is created.
 
 ### Signing
 

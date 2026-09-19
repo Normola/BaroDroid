@@ -13,9 +13,13 @@ import sys
 TAG_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$")
 
 
-def parse(ref: str, sha: str, run_number: int) -> dict[str, str]:
-    if ref.startswith("refs/tags/"):
-        tag = ref[len("refs/tags/"):]
+def parse(ref: str, sha: str, run_number: int, explicit_tag: str = "") -> dict[str, str]:
+    # A tag can arrive two ways: the push that triggered this run, or a tag typed
+    # into the manual run, which publishes from whatever commit is checked out.
+    tag_from_ref = ref[len("refs/tags/"):] if ref.startswith("refs/tags/") else ""
+    tag = explicit_tag.strip() or tag_from_ref
+
+    if tag:
         match = TAG_PATTERN.match(tag)
         if not match:
             sys.exit(
@@ -50,12 +54,17 @@ def parse(ref: str, sha: str, run_number: int) -> dict[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ref", required=True, help="e.g. refs/tags/v1.2.3")
+    parser.add_argument(
+        "--tag",
+        default="",
+        help="Publish this tag regardless of the ref; empty means rehearse.",
+    )
     parser.add_argument("--sha", required=True)
     parser.add_argument("--run-number", type=int, default=1)
     parser.add_argument("--repo", required=True, help="owner/repo")
     args = parser.parse_args()
 
-    values = parse(args.ref, args.sha, args.run_number)
+    values = parse(args.ref, args.sha, args.run_number, args.tag)
     base = f"https://github.com/{args.repo}/releases/download/{values['tag']}"
     values["download_url"] = f"{base}/{values['apk_name']}"
     values["qr_url"] = f"{base}/{values['qr_name']}"
