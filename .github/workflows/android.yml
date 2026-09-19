@@ -87,9 +87,13 @@ jobs:
   release:
     name: Release
     needs: build
-    # Real releases come from a v* tag; a manual run can rehearse the whole thing
-    # and leave the APK, the QR code and the notes as workflow artifacts instead.
-    if: startsWith(github.ref, 'refs/tags/v') || inputs.dry_run
+    # Real releases come from a v* tag. A manual run, or a commit message
+    # carrying [release-dry-run], rehearses the whole thing and leaves the APK,
+    # the QR code and the notes as workflow artifacts instead of publishing.
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      inputs.dry_run ||
+      contains(github.event.head_commit.message, '[release-dry-run]')
     runs-on: ubuntu-latest
     permissions:
       contents: write

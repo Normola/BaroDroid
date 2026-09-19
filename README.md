@@ -74,9 +74,9 @@ the build onto a phone is: open the release, point the phone at the screen.
 A tag of the form `v1.2.3-beta.1` is published as a pre-release.
 
 To rehearse without publishing anything, run the workflow manually
-(**Actions → Android CI → Run workflow**) with *dry run* left on: the same APK, QR
-code and notes are produced and attached to the run as artifacts, and no release is
-created.
+(**Actions → Android CI → Run workflow**) with *dry run* left on, or put
+`[release-dry-run]` in a commit message. Either way the same APK, QR code and notes
+are produced and attached to the run as artifacts, and no release is created.
 
 ### Signing
 
