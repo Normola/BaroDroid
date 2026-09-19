@@ -1,3 +1,9 @@
+// Release builds take their version and signing key from the environment, so the
+// CI release job can stamp a tag onto the APK without the repo carrying secrets.
+val releaseVersionName = providers.environmentVariable("BARODROID_VERSION_NAME").orNull
+val releaseVersionCode = providers.environmentVariable("BARODROID_VERSION_CODE").orNull?.toIntOrNull()
+val releaseKeystore = providers.environmentVariable("BARODROID_KEYSTORE_FILE").orNull
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -12,12 +18,26 @@ android {
         applicationId = "com.normola.barodroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = releaseVersionCode ?: 1
+        versionName = releaseVersionName ?: "1.0"
+    }
+
+    signingConfigs {
+        if (!releaseKeystore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = providers.environmentVariable("BARODROID_KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("BARODROID_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("BARODROID_KEY_PASSWORD").orNull
+            }
+        }
     }
 
     buildTypes {
         release {
+            // Without a keystore in the environment the build still produces an
+            // installable APK, signed with the debug key; the release notes say so.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

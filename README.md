@@ -54,7 +54,47 @@ Android Gradle Plugin 8.7 supports. `minSdk` is 26.
 CI (`.github/workflows/android.yml`) validates the wrapper, runs the tests, lints
 and assembles the debug APK on every push, and uploads the APK and reports as
 artifacts. A second, non-blocking job builds against whatever Gradle release is
-current, as an early warning for the next upgrade.
+current, as an early warning for the next upgrade. A third publishes releases —
+see below.
+
+## Releases
+
+Tag a commit and the pipeline does the rest:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+The release job builds `assembleRelease`, names the APK after the tag, stamps the
+version into it (`1.0.0`, version code `10000`), renders a QR code pointing at the
+APK's download URL, writes the notes from the commits since the previous tag, and
+publishes the lot as a GitHub release. The notes lead with the QR code, so getting
+the build onto a phone is: open the release, point the phone at the screen.
+
+A tag of the form `v1.2.3-beta.1` is published as a pre-release.
+
+To rehearse without publishing anything, run the workflow manually
+(**Actions → Android CI → Run workflow**) with *dry run* left on: the same APK, QR
+code and notes are produced and attached to the run as artifacts, and no release is
+created.
+
+### Signing
+
+With no secrets configured the release APK is signed with the standard debug key —
+installable, but Android treats it as an unknown-source app and it cannot be
+installed over a copy signed with a different key. The release notes say so when
+that happens. To sign properly, add four repository secrets:
+
+| Secret | What it holds |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | the keystore file, base64-encoded (`base64 -w0 release.jks`) |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias inside the keystore |
+| `ANDROID_KEY_PASSWORD` | password for that key |
+
+Locally the same four are read from the environment (`BARODROID_KEYSTORE_FILE`,
+`BARODROID_KEYSTORE_PASSWORD`, `BARODROID_KEY_ALIAS`, `BARODROID_KEY_PASSWORD`), so
+`./gradlew assembleRelease` signs the same way when they are set.
 
 ## Layout
 
