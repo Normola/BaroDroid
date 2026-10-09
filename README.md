@@ -30,11 +30,40 @@ Material You theming and a digital readout in the gap at the bottom of the scale
 Since Android 9, an app that is not visible gets no events from continuous
 sensors, and the barometer is one. So:
 
-- while the app is open, it samples once a minute;
-- a WorkManager job tries every 15/30/60 minutes and succeeds when the system
-  allows it;
+- while the app is open, it reads the sensor once a second and stores a sample a
+  minute;
+- a WorkManager job tries every 30 minutes (15 or 60 if you prefer) and succeeds
+  when the system allows it;
 - for an unbroken graph there is an opt-in foreground service ("Keep logging in
   the background" in settings) with a quiet ongoing notification.
+
+## Battery
+
+A barometer that flattens the battery is not worth having, so the app is built
+to do as little as it can get away with:
+
+- **The sensor is tied to the visible screen.** Readings start when the dial is
+  on screen and stop three seconds after it leaves, at one reading a second —
+  not the ~16 a second Android's "UI" rate would give, which pressure never
+  needs.
+- **Readings are smoothed and deadbanded** (`PressureSmoother`): a reading that
+  moves the average less than 0.03 hPa changes nothing, so sensor noise cannot
+  keep the needle animating or trigger writes.
+- **History lives in memory.** The CSV is parsed once per process; a reading that
+  arrives inside the one-a-minute write interval costs a single comparison.
+- **Widgets never read the sensor** and never ask the system to update them on a
+  timer (`updatePeriodMillis="0"`). They are redrawn only when a new sample is
+  actually stored, and their timestamp shows how fresh the reading is.
+- **The periodic worker stands down when it is being refused.** Android denying
+  background sensor access still costs a wakeup, so after four empty reads in a
+  row the worker cancels itself and waits until the app is next opened.
+- **Nothing samples twice.** The worker skips its turn while the foreground
+  logging service is running.
+- **Low battery and battery saver pause sampling** — the worker skips, and the
+  logging service stretches its interval fourfold.
+
+The one setting that costs real battery is "Keep logging in the background",
+because it holds a foreground service all day. Everything else is close to free.
 
 Nothing leaves the device: no network permission is requested, and the app has no
 network code.

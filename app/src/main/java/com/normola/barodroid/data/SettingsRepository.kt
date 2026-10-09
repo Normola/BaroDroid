@@ -35,9 +35,11 @@ class SettingsRepository(context: Context) {
                 seaLevelCorrection = prefs[Keys.SEA_LEVEL] ?: false,
                 altitudeMetres = prefs[Keys.ALTITUDE] ?: 0.0,
                 hemisphere = Zambretti.Hemisphere.fromId(prefs[Keys.HEMISPHERE]),
-                sampleIntervalMinutes = prefs[Keys.SAMPLE_INTERVAL] ?: 15,
+                sampleIntervalMinutes = prefs[Keys.SAMPLE_INTERVAL]
+                    ?: BaroSettings.DEFAULT_SAMPLE_INTERVAL_MINUTES,
                 dynamicColor = prefs[Keys.DYNAMIC_COLOR] ?: true,
                 backgroundLogging = prefs[Keys.BACKGROUND_LOGGING] ?: false,
+                backgroundSamplingPaused = prefs[Keys.SAMPLING_PAUSED] ?: false,
             )
         }
 
@@ -64,6 +66,15 @@ class SettingsRepository(context: Context) {
 
     suspend fun setBackgroundLogging(enabled: Boolean) = edit { it[Keys.BACKGROUND_LOGGING] = enabled }
 
+    suspend fun setBackgroundSamplingPaused(paused: Boolean) = edit {
+        it[Keys.SAMPLING_PAUSED] = paused
+    }
+
+    /** Consecutive background reads that came back empty. */
+    suspend fun emptyBackgroundReads(): Int = store.data.first()[Keys.EMPTY_READS] ?: 0
+
+    suspend fun setEmptyBackgroundReads(count: Int) = edit { it[Keys.EMPTY_READS] = count }
+
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         store.edit(block)
     }
@@ -76,5 +87,7 @@ class SettingsRepository(context: Context) {
         val SAMPLE_INTERVAL = intPreferencesKey("sample_interval_minutes")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val BACKGROUND_LOGGING = booleanPreferencesKey("background_logging")
+        val SAMPLING_PAUSED = booleanPreferencesKey("background_sampling_paused")
+        val EMPTY_READS = intPreferencesKey("empty_background_reads")
     }
 }

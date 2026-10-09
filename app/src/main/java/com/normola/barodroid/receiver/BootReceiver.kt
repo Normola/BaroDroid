@@ -26,7 +26,9 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 val settings = BaroGraph.settings(appContext).current()
-                SamplingScheduler.schedule(appContext, settings.sampleIntervalMinutes)
+                if (!settings.backgroundSamplingPaused) {
+                    SamplingScheduler.schedule(appContext, settings.sampleIntervalMinutes)
+                }
                 if (settings.backgroundLogging) {
                     BaroLoggingService.start(appContext)
                 }

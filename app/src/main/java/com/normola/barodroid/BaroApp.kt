@@ -15,7 +15,11 @@ class BaroApp : Application() {
         super.onCreate()
         scope.launch {
             val settings = BaroGraph.settings(this@BaroApp).current()
-            SamplingScheduler.schedule(this@BaroApp, settings.sampleIntervalMinutes)
+            // When background sampling has stood itself down there is nothing to
+            // reschedule: opening the app is what brings it back.
+            if (!settings.backgroundSamplingPaused) {
+                SamplingScheduler.schedule(this@BaroApp, settings.sampleIntervalMinutes)
+            }
         }
     }
 }
