@@ -16,6 +16,8 @@ import com.normola.barodroid.BaroGraph
 import com.normola.barodroid.MainActivity
 import com.normola.barodroid.R
 import com.normola.barodroid.core.PressureUnit
+import com.normola.barodroid.data.BaroSettings
+import com.normola.barodroid.power.PowerState
 import com.normola.barodroid.widget.BaroWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,11 @@ class BaroLoggingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        isRunning = true
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
@@ -57,6 +64,7 @@ class BaroLoggingService : Service() {
     }
 
     override fun onDestroy() {
+        isRunning = false
         scope.cancel()
         super.onDestroy()
     }
@@ -71,14 +79,27 @@ class BaroLoggingService : Service() {
         val settings = BaroGraph.settings(this)
         while (scope.isActive) {
             val intervalMinutes = runCatching { settings.current().sampleIntervalMinutes }
-                .getOrDefault(15)
-            val reading = sensor.readOnce(timeoutMillis = 15_000L)
-            if (reading != null) {
-                history.record(reading)
-                notify(buildNotification(reading))
-                BaroWidgets.updateAll(this)
+                .getOrDefault(BaroSettings.DEFAULT_SAMPLE_INTERVAL_MINUTES)
+
+            // In power save, or on a nearly flat battery, skip the reading and
+            // wait longer: a gap in the graph beats a flat phone.
+            val conserving = PowerState.isConserving(this)
+            if (!conserving) {
+                val reading = sensor.readOnce()
+                if (reading != null && history.record(reading)) {
+                    // Only a stored sample changes anything on screen, so only a
+                    // stored sample is worth redrawing two widgets for.
+                    notify(buildNotification(reading))
+                    BaroWidgets.updateAll(this)
+                }
             }
-            delay(intervalMinutes.toLong().coerceAtLeast(1L) * 60_000L)
+
+            val minutes = if (conserving) {
+                intervalMinutes.toLong() * CONSERVING_INTERVAL_MULTIPLIER
+            } else {
+                intervalMinutes.toLong()
+            }
+            delay(minutes.coerceAtLeast(1L) * 60_000L)
         }
     }
 
@@ -144,6 +165,17 @@ class BaroLoggingService : Service() {
     }
 
     companion object {
+        /**
+         * Lets the periodic worker stand aside while the service is sampling, so
+         * the sensor is only ever woken by one of them.
+         */
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
+        /** How much further apart samples go while the battery is under pressure. */
+        private const val CONSERVING_INTERVAL_MULTIPLIER = 4L
+
         private const val CHANNEL_ID = "barodroid_logging"
         private const val NOTIFICATION_ID = 1001
         private const val ACTION_STOP = "com.normola.barodroid.action.STOP_LOGGING"

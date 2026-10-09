@@ -28,8 +28,15 @@ class BarometerSensor(context: Context) {
     /**
      * Live readings in hPa. Implausible values are dropped — some devices emit a
      * zero or a wild spike on the first event after registering.
+     *
+     * The default rate is one reading a second. Atmospheric pressure moves over
+     * minutes, so the UI rate Android offers (around sixteen a second) would burn
+     * power to redraw a needle that has not moved.
      */
-    fun readings(samplingPeriodUs: Int = SensorManager.SENSOR_DELAY_UI): Flow<Double> = callbackFlow {
+    fun readings(
+        samplingPeriodUs: Int = UI_SAMPLING_PERIOD_US,
+        maxReportLatencyUs: Int = 0,
+    ): Flow<Double> = callbackFlow {
         val pressureSensor = sensor
         if (pressureSensor == null) {
             close()
@@ -43,19 +50,28 @@ class BarometerSensor(context: Context) {
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }
-        sensorManager.registerListener(listener, pressureSensor, samplingPeriodUs)
+        sensorManager.registerListener(listener, pressureSensor, samplingPeriodUs, maxReportLatencyUs)
         awaitClose { sensorManager.unregisterListener(listener) }
     }
 
     /**
      * Takes a single reading, for background work where keeping the sensor
      * registered would be wasteful. Returns null if the device has no barometer
-     * or the sensor stays silent.
+     * or the sensor stays silent — which is the normal outcome in the background,
+     * where Android withholds continuous sensors, so the timeout is kept short:
+     * every second spent waiting is a second the CPU cannot sleep.
      */
-    suspend fun readOnce(timeoutMillis: Long = 10_000L): Double? {
+    suspend fun readOnce(timeoutMillis: Long = ONE_SHOT_TIMEOUT_MS): Double? {
         if (!isAvailable) return null
         return withTimeoutOrNull(timeoutMillis) {
-            readings(SensorManager.SENSOR_DELAY_NORMAL).first()
+            readings(samplingPeriodUs = SensorManager.SENSOR_DELAY_NORMAL).first()
         }
+    }
+
+    companion object {
+        /** One reading a second, in microseconds. */
+        const val UI_SAMPLING_PERIOD_US = 1_000_000
+
+        private const val ONE_SHOT_TIMEOUT_MS = 4_000L
     }
 }

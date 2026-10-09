@@ -22,22 +22,19 @@ internal object WidgetSupport {
     data class WidgetData(val snapshot: BarometerSnapshot, val settings: BaroSettings)
 
     /**
-     * Loads history, and tries for a fresh reading — which only arrives when the
-     * app is in the foreground or background logging is running, since Android
-     * cuts background apps off from continuous sensors.
+     * Loads what the widget should draw.
+     *
+     * Deliberately no sensor read: a widget update happens whenever the launcher
+     * feels like it, and Android withholds continuous sensors from background
+     * apps anyway, so asking would usually mean holding the CPU awake for a few
+     * seconds to be told nothing. The app, the worker and the logging service
+     * feed the history; the widget just draws it, and its timestamp says how
+     * fresh it is.
      */
-    suspend fun load(context: Context, allowSensorRead: Boolean = true): WidgetData {
+    suspend fun load(context: Context): WidgetData {
         val settings = BaroGraph.settings(context).current()
-        val history = BaroGraph.history(context)
-        val sensor = BaroGraph.sensor(context)
-
-        val live = if (allowSensorRead && sensor.isAvailable) {
-            sensor.readOnce(timeoutMillis = 2_500L)?.also { history.record(it) }
-        } else {
-            null
-        }
-        val samples = history.load()
-        return WidgetData(BarometerSnapshot.build(samples, live, settings), settings)
+        val samples = BaroGraph.history(context).load()
+        return WidgetData(BarometerSnapshot.build(samples, null, settings), settings)
     }
 
     fun isNight(context: Context): Boolean =

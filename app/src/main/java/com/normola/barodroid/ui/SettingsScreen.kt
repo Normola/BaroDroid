@@ -122,7 +122,8 @@ fun SettingsScreen(
 
             SettingsSection("Readings") {
                 Text(
-                    text = "How often the background sample runs",
+                    text = "How often the background sample runs. Longer intervals cost less " +
+                        "battery and lose nothing: pressure trends are measured over three hours.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -136,10 +137,26 @@ fun SettingsScreen(
                     }
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                if (settings.backgroundSamplingPaused) {
+                    Text(
+                        text = "Background sampling is paused: Android kept refusing to deliver " +
+                            "readings while the app was closed, so BaroDroid stopped waking the " +
+                            "phone to ask. Opening the app has started it again.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = "Sampling pauses by itself in battery saver and below 15% charge.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 SwitchRow(
                     title = "Keep logging in the background",
                     subtitle = "Android stops feeding the barometer to apps that are not " +
-                        "visible, so an unbroken graph needs a quiet ongoing notification.",
+                        "visible, so an unbroken graph needs a quiet ongoing notification. " +
+                        "This is the setting that costs real battery — leave it off unless you " +
+                        "want the graph unbroken overnight.",
                     checked = settings.backgroundLogging,
                     onCheckedChange = { enabled ->
                         if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

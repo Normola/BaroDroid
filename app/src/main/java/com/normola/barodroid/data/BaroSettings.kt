@@ -11,7 +11,7 @@ data class BaroSettings(
     val altitudeMetres: Double = 0.0,
     val hemisphere: Zambretti.Hemisphere = Zambretti.Hemisphere.NORTHERN,
     /** How often the background worker samples the sensor, in minutes. */
-    val sampleIntervalMinutes: Int = 15,
+    val sampleIntervalMinutes: Int = DEFAULT_SAMPLE_INTERVAL_MINUTES,
     val dynamicColor: Boolean = true,
     /**
      * Keep a foreground service running so readings continue while the app is
@@ -19,8 +19,20 @@ data class BaroSettings(
      * is the only reliable way to keep the graph and the widgets fed.
      */
     val backgroundLogging: Boolean = false,
+    /**
+     * Set when Android has repeatedly refused to deliver sensor readings to the
+     * background worker. Rather than wake the device every interval to be
+     * refused again, sampling stands down until the app is next opened.
+     */
+    val backgroundSamplingPaused: Boolean = false,
 ) {
     companion object {
         val SAMPLE_INTERVAL_OPTIONS = listOf(15, 30, 60)
+
+        /**
+         * Half-hourly by default: pressure trends are three-hour affairs, so a
+         * tighter interval costs battery and buys nothing a forecast can use.
+         */
+        const val DEFAULT_SAMPLE_INTERVAL_MINUTES = 30
     }
 }
